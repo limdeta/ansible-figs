@@ -1,2 +1,3 @@
-Prometheus + NodeExporter + AlertManager + Grafana
-todo: fix graphana config, add yandex mirrors
+### Prometheus + NodeExporter + AlertManager + Grafana
+
+- todo: fix grafana config, add yandex mirrors
