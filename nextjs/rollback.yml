@@ -1,0 +1,48 @@
+---
+- name: Rollback Static Next.js Site
+  hosts: prod
+  become: yes
+
+  vars:
+    backup_dir: '/var/www/html_backups'
+    current_link: '/var/www/html'
+
+  tasks:
+    - name: Find the latest backup
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: 'html_backup_*'
+        age: 0
+        age_stamp: mtime
+        recurse: no
+        file_type: directory
+      register: backup_files
+
+    - name: Set the latest backup variable
+      set_fact:
+        latest_backup: "{{ backup_files.files | sort(attribute='mtime', reverse=True) | first }}"
+
+    - name: Fail if no backup found
+      fail:
+        msg: "No backups found in {{ backup_dir }}"
+      when: backup_files.matched == 0
+
+    - name: Remove existing symbolic link
+      file:
+        path: "{{ current_link }}"
+        state: absent
+        force: yes
+
+    - name: Create new symbolic link to the latest backup
+      file:
+        src: "{{ latest_backup.path }}"
+        dest: "{{ current_link }}"
+        state: link
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
+
+# ansible-playbook -i inventory.ini rollback.yml

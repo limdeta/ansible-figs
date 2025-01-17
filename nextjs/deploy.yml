@@ -1,0 +1,86 @@
+---
+- name: Deploy Static Next.js Site
+  hosts: prod
+  become: yes
+
+  vars:
+    repo_url: 'https://github.com/yourusername/yourrepo.git'
+    app_dir: '/var/www/yourapp'
+    branch: 'main'
+    backup_dir: '/var/www/html_backups'
+    current_link: '/var/www/html'
+
+  tasks:
+    - name: Ensure NGINX is installed
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Ensure the backup directory exists
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Check if current_link exists
+      stat:
+        path: "{{ current_link }}"
+      register: current_link_stat
+
+    - name: Create a backup of current static files if they exist
+      command: cp -r {{ current_link }} {{ backup_dir }}/html_backup_$(date +%Y%m%d%H%M%S)
+      when: current_link_stat.stat.exists
+
+    - name: Pull latest code
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ branch }}"
+
+    - name: Install dependencies
+      command: npm install
+      args:
+        chdir: "{{ app_dir }}"
+      creates: "{{ app_dir }}/node_modules"
+
+    - name: Build and export the Next.js app
+      command: npm run build
+      args:
+        chdir: "{{ app_dir }}"
+      environment:
+        NODE_ENV: production
+
+    - name: Remove existing symbolic link
+      file:
+        path: "{{ current_link }}"
+        state: absent
+        force: yes
+
+    - name: Create new symbolic link to the new build
+      file:
+        src: "{{ app_dir }}/out/"
+        dest: "{{ current_link }}"
+        state: link
+
+    - name: Update NGINX configuration
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/sites-available/default
+        regexp: 'root /var/www/html;'
+        line: |
+          root /var/www/html;
+          index index.html;
+          location / {
+            try_files $uri $uri/ =404;
+          }
+      notify: Restart NGINX
+
+  handlers:
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
+
+# ansible-playbook -i inventory.ini deploy.yml
