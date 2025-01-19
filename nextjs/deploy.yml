@@ -1,38 +1,20 @@
 ---
 - name: Deploy Static Next.js Site
   hosts: prod
-  become: yes
-
-  vars:
-    repo_url: 'https://github.com/yourusername/yourrepo.git'
-    app_dir: '/var/www/yourapp'
-    branch: 'main'
-    backup_dir: '/var/www/html_backups'
-    current_link: '/var/www/html'
+  vars_files: 
+    - common_vars.yml
 
   tasks:
-    - name: Ensure NGINX is installed
-      apt:
-        name: nginx
-        state: present
-        update_cache: yes
-
-    - name: Ensure the backup directory exists
-      file:
-        path: "{{ backup_dir }}"
-        state: directory
-        owner: www-data
-        group: www-data
-        mode: '0755'
-
     - name: Check if current_link exists
       stat:
         path: "{{ current_link }}"
       register: current_link_stat
 
     - name: Create a backup of current static files if they exist
-      command: cp -r {{ current_link }} {{ backup_dir }}/html_backup_$(date +%Y%m%d%H%M%S)
+      shell: cp -r $(readlink -f {{ current_link }}) {{ backup_dir }}/app_backup_$(date +%Y%m%d%H%M%S)
       when: current_link_stat.stat.exists
+      args:
+        executable: /bin/bash
 
     - name: Pull latest code
       git:
@@ -41,14 +23,23 @@
         version: "{{ branch }}"
 
     - name: Install dependencies
-      command: npm install
+      shell: |
+        source $HOME/.nvm/nvm.sh
+        nvm use 20
+        npm install --include=dev
       args:
+        executable: /bin/bash
         chdir: "{{ app_dir }}"
-      creates: "{{ app_dir }}/node_modules"
+      environment:
+        NODE_ENV: production
 
-    - name: Build and export the Next.js app
-      command: npm run build
+    - name: Build
+      shell: |
+        source $HOME/.nvm/nvm.sh
+        nvm use 20
+        npm run build
       args:
+        executable: /bin/bash
         chdir: "{{ app_dir }}"
       environment:
         NODE_ENV: production
@@ -65,22 +56,10 @@
         dest: "{{ current_link }}"
         state: link
 
-    - name: Update NGINX configuration
-      ansible.builtin.lineinfile:
-        path: /etc/nginx/sites-available/default
-        regexp: 'root /var/www/html;'
-        line: |
-          root /var/www/html;
-          index index.html;
-          location / {
-            try_files $uri $uri/ =404;
-          }
-      notify: Restart NGINX
-
   handlers:
     - name: Restart NGINX
       service:
         name: nginx
         state: restarted
 
-# ansible-playbook -i inventory.ini deploy.yml
+# ansible-playbook -i inventory.ini deploy.yml --ask-password

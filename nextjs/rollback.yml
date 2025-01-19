@@ -1,31 +1,37 @@
 ---
 - name: Rollback Static Next.js Site
   hosts: prod
-  become: yes
-
-  vars:
-    backup_dir: '/var/www/html_backups'
-    current_link: '/var/www/html'
+  vars_files: 
+    - common_vars.yml
 
   tasks:
+    - name: List backup directory contents
+      command: ls -l "{{ backup_dir }}"
+      register: backup_dir_contents
+
+    - name: Display backup directory contents
+      debug:
+        var: backup_dir_contents
+
     - name: Find the latest backup
       find:
         paths: "{{ backup_dir }}"
-        patterns: 'html_backup_*'
+        patterns: 'app_backup_*'
         age: 0
         age_stamp: mtime
         recurse: no
         file_type: directory
       register: backup_files
 
-    - name: Set the latest backup variable
-      set_fact:
-        latest_backup: "{{ backup_files.files | sort(attribute='mtime', reverse=True) | first }}"
-
     - name: Fail if no backup found
       fail:
         msg: "No backups found in {{ backup_dir }}"
       when: backup_files.matched == 0
+
+    - name: Set the latest backup variable
+      set_fact:
+        latest_backup: "{{ (backup_files.files | sort(attribute='mtime', reverse=True) | first).path }}"
+      when: backup_files.matched > 0
 
     - name: Remove existing symbolic link
       file:
@@ -35,9 +41,10 @@
 
     - name: Create new symbolic link to the latest backup
       file:
-        src: "{{ latest_backup.path }}"
+        src: "{{ latest_backup }}"
         dest: "{{ current_link }}"
         state: link
+      when: backup_files.matched > 0
 
   handlers:
     - name: Restart NGINX
@@ -45,4 +52,4 @@
         name: nginx
         state: restarted
 
-# ansible-playbook -i inventory.ini rollback.yml
+ #ansible-playbook -i inventory.ini deploy.yml --ask-pass

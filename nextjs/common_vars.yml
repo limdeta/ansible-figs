@@ -1,0 +1,8 @@
+# vars/common_vars.yml
+backup_dir: '/var/www/nextjs-test/backups'
+current_link: '/var/www/nextjs-test/current'
+repo_url: 'https://github.com/limdeta/nextjs-sandbox.git'
+app_dir: '/var/www/nextjs-test/app'
+branch: 'main'
+nginx_config: '/etc/nginx/sites-available/nextjs-test'
+node_version: 20
