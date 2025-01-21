@@ -6,8 +6,8 @@ Download latest artifact from pipeline and extract it to the *out* directory.
 Set the *out* directory as the *current* directory.
 
 **how to use**: \
-Create pipeline with github-pipeline.yml temlate.
-Create Github PAT with read privelleges on action.
+Create pipeline with github-pipeline.yml template.
+Create Github PAT with read privileges on action.
 
 1. Install ansible dependencies:
 ```bash
