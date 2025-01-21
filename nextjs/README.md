@@ -1,9 +1,9 @@
 ### Nextjs deploy template.
 **how it works:** \
-On push to main, build the application in the pipeline.
-Backup the current symlink, if it exists, to the backups folder.
-Download the latest artifact from the pipeline and extract it to the out directory.
-Set the out directory as the current directory.
+On push to main, build application in the pipeline.
+Backup *current* symlink, if it exists, to the backups folder.
+Download latest artifact from pipeline and extract it to the *out* directory.
+Set the *out* directory as the *current* directory.
 
 **how to use**: \
 Create pipeline with github-pipeline.yml temlate.
