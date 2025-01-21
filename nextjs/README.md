@@ -19,7 +19,7 @@ ansible-galaxy install ansible-role-nvm
 ```bash
 ansible-vault encrypt vars/vault.yml
 ```
-6. Install all nginx, nginx-config and node
+6. Install all dependencies: nginx, nginx-config and node
 ```bash
 ansible-playbook -i inventory.ini dependencies.yml
 ```
