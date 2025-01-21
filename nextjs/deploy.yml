@@ -2,7 +2,10 @@
 - name: Deploy Static Next.js Site
   hosts: prod
   vars_files: 
-    - common_vars.yml
+    - vars/common_vars.yml
+    - vars/vault.yml
+  vars: 
+    artifact_list_url: "https://api.github.com/repos/{{ git_username }}/{{ git_repo_name }}/actions/artifacts"
 
   tasks:
     - name: Check if current_link exists
@@ -16,33 +19,40 @@
       args:
         executable: /bin/bash
 
-    - name: Pull latest code
-      git:
-        repo: "{{ repo_url }}"
-        dest: "{{ app_dir }}"
-        version: "{{ branch }}"
-
-    - name: Install dependencies
+    - name: Get list of artifacts
       shell: |
-        source $HOME/.nvm/nvm.sh
-        nvm use 20
-        npm install --include=dev
-      args:
-        executable: /bin/bash
-        chdir: "{{ app_dir }}"
-      environment:
-        NODE_ENV: production
+        curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer {{ github_token }}" \
+          {{ artifact_list_url }}
+      register: artifacts_response
 
-    - name: Build
+    - name: Extract artifact information
+      set_fact:
+        artifacts: "{{ artifacts_response.stdout | from_json }}"
+
+    - name: Find the most recent artifact
+      set_fact:
+        most_recent_artifact: "{{ artifacts.artifacts | sort(attribute='created_at', reverse=true) | first }}"
+
+    - name: Ensure the output directory exists
+      file:
+        path: "{{ app_dir }}/out/"
+        state: directory
+
+    - name: Download most recent artifact
       shell: |
-        source $HOME/.nvm/nvm.sh
-        nvm use 20
-        npm run build
-      args:
-        executable: /bin/bash
-        chdir: "{{ app_dir }}"
-      environment:
-        NODE_ENV: production
+        curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer {{ github_token }}" \
+          -o {{ app_dir }}/out/artifact.zip \
+          {{ most_recent_artifact.archive_download_url }}
+
+    - name: Unzip artifact
+      unarchive:
+        src: "{{ app_dir }}/out/artifact.zip"
+        dest: "{{ app_dir }}/out/"
+        remote_src: yes
 
     - name: Remove existing symbolic link
       file:
@@ -61,5 +71,3 @@
       service:
         name: nginx
         state: restarted
-
-# ansible-playbook -i inventory.ini deploy.yml --ask-password

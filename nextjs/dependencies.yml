@@ -1,15 +1,17 @@
 ---
 - name: Install nginx and npm
-  hosts: all
+  hosts: prod
   vars_files: 
     - common_vars.yml
+    - vars/vault.yml
 
-  roles:
+  tasks:
     - name: Ensure NGINX is installed
       apt:
         name: nginx
         state: present
         update_cache: yes
+      tags: nginx_install
 
     - name: Ensure custom NGINX configuration file exists
       copy:
@@ -29,13 +31,15 @@
         owner: root
         group: root
         mode: '0644'
+      tags: nginx_install
 
     - name: Enable custom NGINX configuration
       file:
         src: "{{ nginx_config }}"
-        dest: "/etc/nginx/sites-enabled/nginx-test"
+        dest: "/etc/nginx/sites-enabled/ {{ git_repo_name }}"
         state: link
       notify: Restart NGINX
+      tags: nginx_install
 
     - name: Ensure the backup directory exists
       file:
@@ -45,15 +49,15 @@
         group: www-data
         mode: '0755'
 
+  roles:
     - role: ansible-role-nvm
       nodejs_version: "{{ node_version }}"
       nvm_commands:
        - "nvm exec default npm install"
+      tags: node_install
 
   handlers:
     - name: Restart NGINX
       service:
         name: nginx
         state: restarted
-
-# ansible-playbook -i inventory.ini dependencies.yml --ask-password

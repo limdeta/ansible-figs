@@ -1,0 +1,4 @@
+github_token: # github_pat_1290312-39123981-203
+ansible_ssh_pass: 
+# ansible-vault encrypt vault.yml
+

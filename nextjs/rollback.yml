@@ -51,5 +51,3 @@
       service:
         name: nginx
         state: restarted
-
- #ansible-playbook -i inventory.ini deploy.yml --ask-pass

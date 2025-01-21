@@ -1,0 +1,29 @@
+    # ### BUILD ON SERVER #########
+    # - name: Pull latest code
+    #   git:
+    #     repo: "{{ repo_url }}"
+    #     dest: "{{ app_dir }}"
+    #     version: "{{ branch }}"
+
+    # - name: Install dependencies
+    #   shell: |
+    #     source $HOME/.nvm/nvm.sh
+    #     nvm use 20
+    #     npm install --include=dev
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: "{{ app_dir }}"
+    #   environment:
+    #     NODE_ENV: production
+
+    # - name: Build
+    #   shell: |
+    #     source $HOME/.nvm/nvm.sh
+    #     nvm use 20
+    #     npm run build
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: "{{ app_dir }}"
+    #   environment:
+    #     NODE_ENV: production
+    #################################
