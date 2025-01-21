@@ -34,8 +34,8 @@ Rollback
 ansible-playbook -i inventory.ini rollback.yml
 ```
 
-*todo:*
-move nginx config to external file
-test rollback
-switch backups to versions instead of timestamps
+*todo:* \
+move nginx config to external file \
+test rollback \
+switch backups to versions instead of timestamps \
 switch from curl to some kind of github collection
